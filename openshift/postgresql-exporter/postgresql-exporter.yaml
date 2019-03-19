@@ -1,0 +1,176 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: prometheus-postgresql-exporter-template
+  annotations:
+    openshift.io/display-name: "Prometheus PostgreSQL Exporter"
+    description: "Prometheus data exporter for PostgreSQL"
+    tags: "prometheus,postgresql"
+    iconClass: "icon-postgresql"
+    openshift.io/long-description: "This template defines resources needed to run a data exporter to allow Prometheus to collect data from PostgreSQL instances."
+    openshift.io/provider-display-name: "Red Hat, Inc."
+    openshift.io/documentation-url: "https://github.com/wrouesnel/postgres_exporter"
+labels:
+  app: prometheus-postgresql-exporter
+  template: prometheus-postgresql-exporter-template
+objects:
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      description: Defines how to build the application
+      template.alpha.openshift.io/wait-for-ready: "true"
+    name: ${NAME}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: ${NAME}:latest
+    resources:
+      requests:
+        memory: ${BUILD_MEMORY_REQUEST}
+      limits:
+        memory: ${BUILD_MEMORY_LIMIT}
+    source:
+      contextDir: ${CONTEXT_DIR}
+      git:
+        ref: ${SOURCE_REPOSITORY_REF}
+        uri: ${SOURCE_REPOSITORY_URL}
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: python-36-centos7:latest
+          namespace: ${NAMESPACE}
+      type: Source
+    triggers:
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+    - github:
+        secret: ${GITHUB_WEBHOOK_SECRET}
+      type: GitHub
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the database
+      template.alpha.openshift.io/wait-for-ready: "true"
+    labels:
+      app: prometheus-postgresql-exporter
+      template: prometheus-postgresql-exporter-template
+    name: prometheus-postgresql-exporter
+  spec:
+    replicas: 1
+    selector:
+      name: prometheus-postgresql-exporter
+    resources:
+      limits:
+        memory: ${MEMORY_REQUEST}
+      limits:
+        memory: ${MEMORY_LIMIT}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: prometheus-postgresql-exporter
+          template: prometheus-postgresql-exporter-template
+          name: prometheus-postgresql-exporter
+        name: prometheus-postgresql-exporter
+      spec:
+        containers:
+        - env:
+          - name: DATA_SOURCE_NAME
+            value: "postgresql://user:pass@postgresql.postgresql.svc.cluster.local"
+          - name: PG_EXPORTER_WEB_LISTEN_ADDRESS
+            value: "9187"
+          - name: PG_EXPORTER_WEB_TELEMETRY_PATH
+            value: "/metrics"
+          - name: PG_EXPORTER_DISABLE_DEFAULT_METRICS
+            value: false
+          - name: PG_EXPORTER_DISABLE_SETTINGS_METRICS
+            value: false
+          - name: PG_EXPORTER_EXTEND_QUERY_PATH
+            value: ''
+          - name: PG_EXPORTER_CONSTANT_LABELS
+            value: ''
+          image: ${NAME}:latest
+          imagePullPolicy: IfNotPresent
+          name: prometheus-postgresql-exporter
+          ports:
+          - containerPort: "9187"
+            protocol: TCP
+          resources:
+            requests:
+              memory: ${MEMORY_REQUEST}
+            limits:
+              memory: ${MEMORY_LIMIT}
+          volumeMounts:
+          - mountPath: /var/lib/pgsql/data
+            name: koku-pgsql-data
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - prometheus-postgresql-exporter
+        from:
+          kind: ImageStreamTag
+          name: ${NAME}:latest
+          namespace: ${NAMESPACE}
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+parameters:
+- description: The name assigned to all frontend objects defined in this template.
+  displayName: Name
+  name: NAME
+  required: true
+  value: prometheus-postgresql-exporter
+- description: The OpenShift Namespace where the ImageStream resides.
+  displayName: Namespace
+  name: NAMESPACE
+  required: true
+  value: project-koku
+- description: Initial amount of memory the build container will request.
+  displayName: Build Memory Request
+  name: BUILD_MEMORY_REQUEST
+  required: true
+  value: 1Gi
+- description: Maximum amount of memory the build container can use.
+  displayName: Build Memory Limit
+  name: BUILD_MEMORY_LIMIT
+  required: true
+  value: 1Gi
+- description: Initial amount of memory the PostgreSQL container will request.
+  displayName: Memory Request (PostgreSQL)
+  name: MEMORY_REQUEST
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the PostgreSQL container can use.
+  displayName: Memory Limit (PostgreSQL)
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Github trigger secret.  A difficult to guess string encoded as part
+    of the webhook URL.  Not encrypted.
+  displayName: GitHub Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GITHUB_WEBHOOK_SECRET
+- description: The URL of the repository with your application source code.
+  displayName: Git Repository URL
+  name: SOURCE_REPOSITORY_URL
+  required: true
+  value: 'https://github.com/project-koku/koku.git'
+- description: Set this to a branch name, tag or other ref of your repository if you
+    are not using the default branch.
+  displayName: Git Reference
+  name: SOURCE_REPOSITORY_REF
+  value: 'master'
+- description: Set this to the relative path to your project if it is not in the root
+    of your repository.
+  displayName: Context Directory
+  name: CONTEXT_DIR
+  value: '/openshift/postgresql-exporter'
