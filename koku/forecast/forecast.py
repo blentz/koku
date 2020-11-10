@@ -192,8 +192,14 @@ class AzureForecast(Forecast):
     provider_map = AzureProviderMap
 
     def predict(self):
-        """Forecasting is not yet implemented for this provider."""
-        return FAKE_RESPONSE
+        """Define ORM query to run forecast and return prediction."""
+        with tenant_context(self.params.tenant):
+            data = (
+                self.cost_summary_table.objects.filter(self.filters.compose())
+                .order_by("usage_start")
+                .values_list("usage_start", "pretax_cost")
+            )
+            return self._predict(data)
 
 
 class OCPForecast(Forecast):
@@ -203,8 +209,14 @@ class OCPForecast(Forecast):
     provider_map = OCPProviderMap
 
     def predict(self):
-        """Forecasting is not yet implemented for this provider."""
-        return FAKE_RESPONSE
+        """Define ORM query to run forecast and return prediction."""
+        with tenant_context(self.params.tenant):
+            data = (
+                self.cost_summary_table.objects.filter(self.filters.compose())
+                .order_by("usage_start")
+                .values_list("usage_start", "infrastructure_raw_cost")
+            )
+            return self._predict(data)
 
 
 class OCPAWSForecast(Forecast):
@@ -214,8 +226,14 @@ class OCPAWSForecast(Forecast):
     provider_map = OCPAWSProviderMap
 
     def predict(self):
-        """Forecasting is not yet implemented for this provider."""
-        return FAKE_RESPONSE
+        """Define ORM query to run forecast and return prediction."""
+        with tenant_context(self.params.tenant):
+            data = (
+                self.cost_summary_table.objects.filter(self.filters.compose())
+                .order_by("usage_start")
+                .values_list("usage_start", "unblended_cost")
+            )
+            return self._predict(data)
 
 
 class OCPAzureForecast(Forecast):
@@ -225,8 +243,14 @@ class OCPAzureForecast(Forecast):
     provider_map = OCPAzureProviderMap
 
     def predict(self):
-        """Forecasting is not yet implemented for this provider."""
-        return FAKE_RESPONSE
+        """Define ORM query to run forecast and return prediction."""
+        with tenant_context(self.params.tenant):
+            data = (
+                self.cost_summary_table.objects.filter(self.filters.compose())
+                .order_by("usage_start")
+                .values_list("usage_start", "pretax_cost")
+            )
+            return self._predict(data)
 
 
 class OCPAllForecast(Forecast):
@@ -236,5 +260,11 @@ class OCPAllForecast(Forecast):
     provider_map = OCPAllProviderMap
 
     def predict(self):
-        """Forecasting is not yet implemented for this provider."""
-        return FAKE_RESPONSE
+        """Define ORM query to run forecast and return prediction."""
+        with tenant_context(self.params.tenant):
+            data = (
+                self.cost_summary_table.objects.filter(self.filters.compose())
+                .order_by("usage_start")
+                .values_list("usage_start", "unblended_cost")
+            )
+            return self._predict(data)

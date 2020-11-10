@@ -24,9 +24,21 @@ import pytz
 from django.utils import timezone
 
 from api.forecast.views import AWSCostForecastView
+from api.forecast.views import AzureCostForecastView
+from api.forecast.views import OCPAllCostForecastView
+from api.forecast.views import OCPAWSCostForecastView
+from api.forecast.views import OCPAzureCostForecastView
+from api.forecast.views import OCPCostForecastView
 from api.iam.test.iam_test_case import IamTestCase
 from api.utils import DateHelper
 from forecast import AWSForecast
+from forecast import AzureForecast
+from forecast import OCPAllForecast
+from forecast import OCPAWSForecast
+from forecast import OCPAzureForecast
+from forecast import OCPForecast
+
+LOG = logging.getLogger(__name__)
 
 
 class MockDateHelper(DateHelper):
@@ -211,3 +223,104 @@ class AWSForecastTest(IamTestCase):
                             self.assertGreaterEqual(item.get("confidence_min"), 0)
                             self.assertGreaterEqual(item.get("rsquared"), 0)
                             self.assertGreaterEqual(item.get("pvalues"), 0)
+
+
+class AzureForecastTest(IamTestCase):
+    """Tests the AzureForecast class."""
+
+    def test_predict(self):
+        """Test that predict() returns values."""
+        params = self.mocked_query_params("?", AzureCostForecastView)
+        LOG.critical("XXX: %s", params.tenant.schema_name)
+        instance = AzureForecast(params)
+
+        results = instance.predict()
+
+        for item in results:
+            self.assertRegex(item.get("date"), r"\d{4}-\d{2}-\d{2}")
+            self.assertGreater(item.get("value"), 0)
+            self.assertGreater(item.get("confidence_max"), 0)
+            self.assertGreaterEqual(item.get("confidence_min"), 0)
+            self.assertLessEqual(item.get("rsquared"), 1)
+            self.assertGreaterEqual(item.get("rsquared"), 0)
+            self.assertGreaterEqual(item.get("pvalues"), 0)
+
+
+class OCPForecastTest(IamTestCase):
+    """Tests the OCPForecast class."""
+
+    def test_predict(self):
+        """Test that predict() returns values."""
+        params = self.mocked_query_params("?", OCPCostForecastView)
+        instance = OCPForecast(params)
+
+        results = instance.predict()
+
+        for item in results:
+            self.assertRegex(item.get("date"), r"\d{4}-\d{2}-\d{2}")
+            self.assertGreater(item.get("value"), 0)
+            self.assertGreater(item.get("confidence_max"), 0)
+            self.assertGreaterEqual(item.get("confidence_min"), 0)
+            self.assertLessEqual(item.get("rsquared"), 1)
+            self.assertGreaterEqual(item.get("rsquared"), 0)
+            self.assertGreaterEqual(item.get("pvalues"), 0)
+
+
+class OCPAllForecastTest(IamTestCase):
+    """Tests the OCPAllForecast class."""
+
+    def test_predict(self):
+        """Test that predict() returns values."""
+        params = self.mocked_query_params("?", OCPAllCostForecastView)
+        instance = OCPAllForecast(params)
+
+        results = instance.predict()
+
+        for item in results:
+            self.assertRegex(item.get("date"), r"\d{4}-\d{2}-\d{2}")
+            self.assertGreater(item.get("value"), 0)
+            self.assertGreater(item.get("confidence_max"), 0)
+            self.assertGreaterEqual(item.get("confidence_min"), 0)
+            self.assertLessEqual(item.get("rsquared"), 1)
+            self.assertGreaterEqual(item.get("rsquared"), 0)
+            self.assertGreaterEqual(item.get("pvalues"), 0)
+
+
+class OCPAWSForecastTest(IamTestCase):
+    """Tests the OCPAWSForecast class."""
+
+    def test_predict(self):
+        """Test that predict() returns values."""
+        params = self.mocked_query_params("?", OCPAWSCostForecastView)
+        instance = OCPAWSForecast(params)
+
+        results = instance.predict()
+
+        for item in results:
+            self.assertRegex(item.get("date"), r"\d{4}-\d{2}-\d{2}")
+            self.assertGreater(item.get("value"), 0)
+            self.assertGreater(item.get("confidence_max"), 0)
+            self.assertGreaterEqual(item.get("confidence_min"), 0)
+            self.assertLessEqual(item.get("rsquared"), 1)
+            self.assertGreaterEqual(item.get("rsquared"), 0)
+            self.assertGreaterEqual(item.get("pvalues"), 0)
+
+
+class OCPAzureForecastTest(IamTestCase):
+    """Tests the OCPAzureForecast class."""
+
+    def test_predict(self):
+        """Test that predict() returns values."""
+        params = self.mocked_query_params("?", OCPAzureCostForecastView)
+        instance = OCPAzureForecast(params)
+
+        results = instance.predict()
+
+        for item in results:
+            self.assertRegex(item.get("date"), r"\d{4}-\d{2}-\d{2}")
+            self.assertGreater(item.get("value"), 0)
+            self.assertGreater(item.get("confidence_max"), 0)
+            self.assertGreaterEqual(item.get("confidence_min"), 0)
+            self.assertLessEqual(item.get("rsquared"), 1)
+            self.assertGreaterEqual(item.get("rsquared"), 0)
+            self.assertGreaterEqual(item.get("pvalues"), 0)
